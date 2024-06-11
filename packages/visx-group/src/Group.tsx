@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCanvas } from '@visx/canvas';
 import cx from 'classnames';
 
 type GroupProps = {
@@ -13,6 +14,8 @@ type GroupProps = {
   children?: React.ReactNode;
   /** ref to underlying `<g/>`. */
   innerRef?: React.Ref<SVGGElement>;
+  /** id of parent canvas */
+  canvasParentId?: number;
 };
 
 export default function Group({
@@ -22,8 +25,71 @@ export default function Group({
   className,
   children,
   innerRef,
+  canvasParentId,
   ...restProps
 }: GroupProps & Omit<React.SVGProps<SVGGElement>, keyof GroupProps>) {
+  const { hasCanvas, handleChildren, registerCanvasComponent, updateNode, addNode } = useCanvas();
+  const canvasId = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!hasCanvas) return;
+
+    registerCanvasComponent(
+      'GROUP',
+      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, restProps }) => {
+        if (!ctx) {
+          return;
+        }
+        const { x = 0, y = 0 } = restProps;
+
+        if (!isNaN(Number(x))) {
+          console.log(`translating x: ctx.translate(${Number(x)}, 0)`);
+          ctx.translate(Number(x), 0);
+        }
+
+        if (!isNaN(Number(y))) {
+          console.log(`translating y: ctx.translate(${Number(y)}, 0)`);
+          ctx.translate(0, Number(y));
+        }
+        if (!isNaN(Number(left))) {
+          console.log(`translating x: ctx.translate(${Number(left)}, 0)`);
+          ctx.translate(Number(left), 0);
+        }
+
+        if (!isNaN(Number(top))) {
+          console.log(`translating y: ctx.translate(${Number(top)}, 0)`);
+          ctx.translate(0, Number(top));
+        }
+      },
+      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+        // Reset current transformation matrix to the identity matrix
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!hasCanvas) return;
+
+    canvasId.current = addNode(canvasParentId ?? null, 'GROUP', { top, left, restProps });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!hasCanvas || !canvasId.current) return;
+
+    updateNode(canvasId.current, { left, top, restProps });
+  }, [left, top, restProps, hasCanvas, updateNode]);
+
+  if (hasCanvas) {
+    if (!children || !canvasId.current) {
+      return null;
+    }
+
+    return handleChildren(children, canvasId.current);
+  }
+
   return (
     <g
       ref={innerRef}

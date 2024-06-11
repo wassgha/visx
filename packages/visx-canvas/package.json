@@ -1,7 +1,7 @@
 {
-  "name": "@visx/group",
+  "name": "@visx/canvas",
   "version": "3.3.0",
-  "description": "visx group",
+  "description": "visx canvas",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "@types/react": "*",
-    "@visx/canvas": "3.3.0",
     "classnames": "^2.3.1",
     "prop-types": "^15.6.2"
   },

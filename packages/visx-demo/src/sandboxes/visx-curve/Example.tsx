@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { extent, max } from '@visx/vendor/d3-array';
 import * as allCurves from '@visx/curve';
 import { Group } from '@visx/group';
-import { LinePath } from '@visx/shape';
+import { Circle, LinePath } from '@visx/shape';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { MarkerArrow, MarkerCross, MarkerX, MarkerCircle, MarkerLine } from '@visx/marker';
 import generateDateValue, { DateValue } from '@visx/mock-data/lib/generators/genDateValue';
+import { Canvas } from '@visx/canvas';
 
 type CurveType = keyof typeof allCurves;
 
@@ -40,12 +41,15 @@ export type CurveProps = {
 export default function Example({ width, height, showControls = true }: CurveProps) {
   const [curveType, setCurveType] = useState<CurveType>('curveNatural');
   const [showPoints, setShowPoints] = useState<boolean>(true);
+  const [showCanvas, setShowCanvas] = useState<boolean>(false);
   const svgHeight = showControls ? height - 40 : height;
   const lineHeight = svgHeight / lineCount;
 
   // update scale output ranges
   xScale.range([0, width - 50]);
   yScale.range([lineHeight - 2, 0]);
+
+  const SVGOrCanvas = showCanvas ? Canvas : 'svg';
 
   return (
     <div className="visx-curves-demo">
@@ -70,10 +74,19 @@ export default function Example({ width, height, showControls = true }: CurvePro
               onChange={() => setShowPoints(!showPoints)}
             />
           </label>
+          &nbsp;
+          <label>
+            Use <code>&lt;canvas&gt;</code>&nbsp;
+            <input
+              type="checkbox"
+              checked={showCanvas}
+              onChange={() => setShowCanvas(!showCanvas)}
+            />
+          </label>
           <br />
         </>
       )}
-      <svg width={width} height={svgHeight}>
+      <SVGOrCanvas width={width} height={svgHeight}>
         <MarkerX
           id="marker-x"
           stroke="#333"
@@ -104,7 +117,7 @@ export default function Example({ width, height, showControls = true }: CurvePro
               <Group key={`lines-${i}`} top={i * lineHeight} left={13}>
                 {showPoints &&
                   lineData.map((d, j) => (
-                    <circle
+                    <Circle
                       key={i + j}
                       r={3}
                       cx={xScale(getX(d))}
@@ -129,7 +142,7 @@ export default function Example({ width, height, showControls = true }: CurvePro
               </Group>
             );
           })}
-      </svg>
+      </SVGOrCanvas>
       <style jsx>{`
         .visx-curves-demo label {
           font-size: 12px;

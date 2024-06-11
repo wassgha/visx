@@ -37,6 +37,7 @@
     "@visx/axis": "3.10.1",
     "@visx/bounds": "3.3.0",
     "@visx/brush": "3.10.4",
+    "@visx/canvas": "3.3.0",
     "@visx/chord": "3.3.0",
     "@visx/clip-path": "3.3.0",
     "@visx/curve": "3.3.0",

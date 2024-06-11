@@ -16,6 +16,9 @@
   ],
   "references": [
     {
+      "path": "../visx-canvas"
+    },
+    {
       "path": "../visx-curve"
     },
     {
