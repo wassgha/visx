@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useCanvas } from '@visx/canvas';
 import cx from 'classnames';
 
@@ -28,12 +28,12 @@ export default function Group({
   canvasParentId,
   ...restProps
 }: GroupProps & Omit<React.SVGProps<SVGGElement>, keyof GroupProps>) {
-  const { hasCanvas, handleChildren, registerCanvasComponent, updateNode, addNode } = useCanvas();
+  const { hasCanvas, handleChildren, registerCanvasComponent, updateNode, deleteNode, addNode } =
+    useCanvas();
   const canvasId = useRef<number | null>(null);
+  const prevId = useRef<number | null>(null);
 
-  useLayoutEffect(() => {
-    if (!hasCanvas) return;
-
+  useMemo(() => {
     registerCanvasComponent(
       'GROUP',
       (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, restProps }) => {
@@ -66,15 +66,20 @@ export default function Group({
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       },
     );
+
+    console.log('adding group');
+    canvasId.current = addNode(canvasParentId ?? null, 'GROUP', { top, left, restProps });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canvasParentId, left, restProps, top, children]);
 
   useLayoutEffect(() => {
-    if (!hasCanvas) return;
-
-    canvasId.current = addNode(canvasParentId ?? null, 'GROUP', { top, left, restProps });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    prevId.current = canvasId.current;
+    return () => {
+      console.log('deleting group', prevId.current);
+      deleteNode(prevId.current);
+    };
+  }, [canvasParentId, left, restProps, top, children, deleteNode]);
 
   useEffect(() => {
     if (!hasCanvas || !canvasId.current) return;

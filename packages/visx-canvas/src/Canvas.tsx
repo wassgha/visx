@@ -8,6 +8,7 @@ import React, {
   ReactNode,
   cloneElement,
   ReactElement,
+  useLayoutEffect,
 } from 'react';
 import { CanvasContext, CanvasNode } from './CanvasContext';
 import useTree, { TreeNode } from './hooks/useTree';
@@ -19,7 +20,7 @@ export default function Canvas({
   ...restProps
 }: DetailedHTMLProps<CanvasHTMLAttributes<HTMLCanvasElement>, HTMLCanvasElement>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [registry, setRegistry] = useState<
+  const registry = useRef<
     {
       type: string;
       render: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, props: any) => void;
@@ -34,7 +35,10 @@ export default function Canvas({
       },
     },
   ]);
-  const [tree, { addChild, updateNode: treeUpdateNode }] = useTree<CanvasNode>();
+  const [tree, { addChild, updateNode: treeUpdateNode, deleteNode }] = useTree<CanvasNode>({
+    type: 'ROOT',
+    props: {},
+  });
   const [ratio, setRatio] = useState<number>(window.devicePixelRatio ?? 1);
 
   const registerCanvasComponent = useCallback(
@@ -43,16 +47,16 @@ export default function Canvas({
       render: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, props: any) => void,
       cleanup?: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, props: any) => void,
     ) => {
-      if (registry.some(({ type: t }) => t === type)) return;
+      if (registry.current.some(({ type: t }) => t === type)) return;
 
-      setRegistry((r) => [
-        ...r,
+      registry.current = [
+        ...registry.current,
         {
           type,
           render,
           cleanup,
         },
-      ]);
+      ];
     },
     [registry],
   );
@@ -97,6 +101,7 @@ export default function Canvas({
     ref: canvasRef,
     addNode,
     updateNode,
+    deleteNode,
     registerCanvasComponent,
     handleChildren,
     hasCanvas: true,
@@ -110,6 +115,7 @@ export default function Canvas({
       handleChildren,
       addNode,
       updateNode,
+      deleteNode,
       hasCanvas: true,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,7 +137,7 @@ export default function Canvas({
   const execute = useCallback(
     (canvas, ctx, root: TreeNode<CanvasNode>) => {
       console.log('executing on ', root.id, root);
-      const component = registry.find(({ type }) => type === root.payload?.type);
+      const component = registry.current.find(({ type }) => type === root.payload?.type);
       component?.render?.(canvas, ctx, root.payload?.props);
       for (const child of root.children ?? []) {
         execute(canvas, ctx, child);

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import classnames from 'classnames';
 import { useCanvas } from '@visx/canvas';
 import { AddSVGProps } from '../types';
@@ -19,12 +19,11 @@ export default function Circle({
   canvasParentId,
   ...restProps
 }: AddSVGProps<CircleProps, SVGCircleElement>) {
-  const { hasCanvas, updateNode, addNode, registerCanvasComponent } = useCanvas();
+  const { hasCanvas, updateNode, deleteNode, addNode, registerCanvasComponent } = useCanvas();
   const canvasId = useRef<number | null>(null);
+  const prevId = useRef<number | null>(null);
 
-  useLayoutEffect(() => {
-    if (!hasCanvas) return;
-
+  useMemo(() => {
     registerCanvasComponent(
       'CIRCLE',
       (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { restProps }) => {
@@ -68,14 +67,20 @@ export default function Circle({
         ctx.fillStyle = 'black';
       },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useLayoutEffect(() => {
-    if (!hasCanvas) return;
 
+    console.log('adding circle');
     canvasId.current = addNode(canvasParentId ?? null, 'CIRCLE', { restProps });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canvasParentId, restProps]);
+
+  useLayoutEffect(() => {
+    prevId.current = canvasId.current;
+    return () => {
+      console.log('deleting circle', prevId.current);
+      deleteNode(prevId.current);
+    };
+  }, [deleteNode, canvasParentId, restProps]);
 
   useEffect(() => {
     if (!hasCanvas || !canvasId.current) return;

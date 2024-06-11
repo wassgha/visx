@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 export interface TreeNode<T> {
   id: number;
@@ -9,15 +9,27 @@ export interface TreeNode<T> {
 interface TreeActions<T> {
   addChild: (parentId: number | null, payload: T) => number;
   findNode: (id: number) => TreeNode<T> | null;
-  deleteNode: (id: number) => void;
+  deleteNode: (id: number | null) => void;
   updateNode: (id: number, payload: Partial<T>) => void;
+  resetTree: () => void;
 }
 
-const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
-  const [tree, setTree] = useState<TreeNode<T>>({
+const useTree = <T>(initialPayload: T): [TreeNode<T>, TreeActions<T>] => {
+  const [statefulTree, setStatefulTree] = useState<TreeNode<T>>({
     id: Math.floor(Math.random() * 1000000),
     children: [],
+    payload: initialPayload,
   });
+  const tree = useRef<TreeNode<T>>({
+    id: Math.floor(Math.random() * 1000000),
+    children: [],
+    payload: initialPayload,
+  });
+
+  const resetTree = useCallback(() => {
+    tree.current = { id: tree.current.id, children: [], payload: initialPayload };
+    setStatefulTree({ ...tree.current });
+  }, [initialPayload]);
 
   const traverseAndAdd = useCallback(
     (root: TreeNode<T>, parentId: number, newChild: TreeNode<T>): TreeNode<T> => {
@@ -43,8 +55,9 @@ const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
         children: [],
       };
 
-      const updatedTree = traverseAndAdd(tree, parentId ?? tree.id, newChild);
-      setTree({ ...updatedTree });
+      tree.current = traverseAndAdd(tree.current, parentId ?? tree.current.id, newChild);
+      setStatefulTree({ ...tree.current });
+
       return newChild.id;
     },
     [traverseAndAdd, tree],
@@ -68,7 +81,7 @@ const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
   }, []);
 
   const findNode = useCallback(
-    (id: number): TreeNode<T> | null => traverseAndFind(tree, id),
+    (id: number): TreeNode<T> | null => traverseAndFind(tree.current, id),
     [traverseAndFind, tree],
   );
 
@@ -83,9 +96,12 @@ const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
   }, []);
 
   const deleteNode = useCallback(
-    (id: number) => {
-      const updatedTree = traverseAndDelete(tree, id);
-      setTree({ ...updatedTree });
+    (id: number | null) => {
+      if (!id) {
+        return;
+      }
+      tree.current = traverseAndDelete(tree.current, id);
+      setStatefulTree({ ...tree.current });
     },
     [traverseAndDelete, tree],
   );
@@ -108,8 +124,8 @@ const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
 
   const updateNode = useCallback(
     (id: number, payload: Partial<T>) => {
-      const updatedTree = traverseAndUpdate(tree, id, payload);
-      setTree({ ...updatedTree });
+      tree.current = traverseAndUpdate(tree.current, id, payload);
+      setStatefulTree({ ...tree.current });
     },
     [traverseAndUpdate, tree],
   );
@@ -120,11 +136,12 @@ const useTree = <T>(): [TreeNode<T>, TreeActions<T>] => {
       findNode,
       deleteNode,
       updateNode,
+      resetTree,
     }),
-    [addChild, findNode, deleteNode, updateNode],
+    [addChild, findNode, deleteNode, resetTree, updateNode],
   );
 
-  return [tree, actions];
+  return [statefulTree, actions];
 };
 
 export default useTree;

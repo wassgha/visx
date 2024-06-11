@@ -1,5 +1,5 @@
 /* eslint-disable no-shadow */
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import cx from 'classnames';
 import { Line as LineType } from 'd3-shape';
 import { useCanvas } from '@visx/canvas';
@@ -35,19 +35,19 @@ export default function LinePath<Datum>({
   canvasParentId,
   ...restProps
 }: AddSVGProps<LinePathProps<Datum>, SVGPathElement>) {
-  const { hasCanvas, handleChildren, addNode, updateNode, registerCanvasComponent } = useCanvas();
+  const { hasCanvas, handleChildren, addNode, deleteNode, updateNode, registerCanvasComponent } =
+    useCanvas();
   const canvasId = useRef<number | null>(null);
+  const prevId = useRef<number | null>(null);
   const path = line<Datum>({ x, y, defined, curve });
 
-  useLayoutEffect(() => {
-    if (!hasCanvas) return;
-
+  useMemo(() => {
     registerCanvasComponent(
       'LINE_PATH',
       (
         _: HTMLCanvasElement,
         ctx: CanvasRenderingContext2D,
-        { data = [], fill = 'transparent' },
+        { data = [], path, restProps, fill = 'transparent' },
       ) => {
         if (!ctx) {
           return;
@@ -91,21 +91,31 @@ export default function LinePath<Datum>({
         ctx.fillStyle = 'black';
       },
     );
+
+    console.log('adding linepath');
+    canvasId.current = addNode(canvasParentId ?? null, 'LINE_PATH', {
+      data,
+      path,
+      restProps,
+      fill,
+    });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canvasParentId, data, fill, path, restProps]);
 
   useLayoutEffect(() => {
-    if (!hasCanvas) return;
-
-    canvasId.current = addNode(canvasParentId ?? null, 'LINE_PATH', { data, fill });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    prevId.current = canvasId.current;
+    return () => {
+      console.log('deleting linepath', prevId.current);
+      deleteNode(prevId.current);
+    };
+  }, [deleteNode, canvasParentId, data, fill, path, restProps]);
 
   useEffect(() => {
     if (!hasCanvas || !canvasId.current) return;
 
-    updateNode(canvasId.current, { data, fill });
-  }, [data, fill, hasCanvas, updateNode]);
+    updateNode(canvasId.current, { data, path, restProps, fill });
+  }, [data, fill, path, restProps, hasCanvas, updateNode]);
 
   if (hasCanvas) {
     if (!children || !canvasId.current) {

@@ -16,6 +16,7 @@ const CanvasContext = createContext({
   ) => {},
   updateNode: (id: number, props: any): void => {},
   addNode: (parentId: number | null, type: string, props: any): number => 12345,
+  deleteNode: (id: number | null) => {},
   handleChildren: (nodes: ReactNode | null, canvasId: number): ReactNode | null => nodes,
 });
 const useCanvas = () => useContext(CanvasContext);
