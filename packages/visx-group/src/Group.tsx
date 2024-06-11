@@ -61,9 +61,33 @@ export default function Group({
           ctx.translate(0, Number(top));
         }
       },
-      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-        // Reset current transformation matrix to the identity matrix
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, restProps }) => {
+        // Reverse the transformations
+        if (!ctx) {
+          return;
+        }
+
+        if (!isNaN(Number(left))) {
+          console.log(`translating x: ctx.translate(-${Number(left)}, 0)`);
+          ctx.translate(-Number(left), 0);
+        }
+
+        if (!isNaN(Number(top))) {
+          console.log(`translating y: ctx.translate(-${Number(top)}, 0)`);
+          ctx.translate(0, -Number(top));
+        }
+
+        const { x = 0, y = 0 } = restProps;
+
+        if (!isNaN(Number(x))) {
+          console.log(`translating x: ctx.translate(-${Number(x)}, 0)`);
+          ctx.translate(-Number(x), 0);
+        }
+
+        if (!isNaN(Number(y))) {
+          console.log(`translating y: ctx.translate(-${Number(y)}, 0)`);
+          ctx.translate(0, -Number(y));
+        }
       },
     );
 

@@ -12,6 +12,7 @@ import React, {
 } from 'react';
 import { CanvasContext, CanvasNode } from './CanvasContext';
 import useTree, { TreeNode } from './hooks/useTree';
+import useDevicePixelRatio from './hooks/useDevicePixelRatio';
 
 export default function Canvas({
   children,
@@ -20,6 +21,7 @@ export default function Canvas({
   ...restProps
 }: DetailedHTMLProps<CanvasHTMLAttributes<HTMLCanvasElement>, HTMLCanvasElement>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ratio = useDevicePixelRatio();
   const registry = useRef<
     {
       type: string;
@@ -29,17 +31,17 @@ export default function Canvas({
   >([
     {
       type: 'ROOT',
-      render: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+      render: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { ratio }) => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(ratio, ratio);
       },
     },
   ]);
   const [tree, { addChild, updateNode: treeUpdateNode, deleteNode }] = useTree<CanvasNode>({
     type: 'ROOT',
-    props: {},
+    props: { ratio },
   });
-  const [ratio, setRatio] = useState<number>(window.devicePixelRatio ?? 1);
 
   const registerCanvasComponent = useCallback(
     (
@@ -121,19 +123,6 @@ export default function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.ref]);
 
-  // Keep ratio updated as a state
-  const updateRatio = useCallback(() => {
-    setRatio(window.devicePixelRatio);
-  }, []);
-  useEffect(() => {
-    const mqString = `(resolution: ${window.devicePixelRatio}dppx)`;
-    const media = matchMedia(mqString);
-    media.addEventListener('change', updateRatio);
-    return () => {
-      media.removeEventListener('change', updateRatio);
-    };
-  }, [updateRatio]);
-
   const execute = useCallback(
     (canvas, ctx, root: TreeNode<CanvasNode>) => {
       console.log('executing on ', root.id, root);
@@ -146,6 +135,28 @@ export default function Canvas({
     },
     [registry],
   );
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) {
+      return;
+    }
+
+    console.log('devicePixelRatio', window.devicePixelRatio);
+    const { width, height } = canvas.getBoundingClientRect();
+    console.log({ width, height });
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }, [ratio]);
+
+  useEffect(() => {
+    updateNode(tree.id, { ratio });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ratio]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
