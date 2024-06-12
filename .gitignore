@@ -31,6 +31,7 @@ tmp/
 .babelrc
 *.tsbuildinfo
 webpack.config.js
+.npmrc
 
 # Lock files
 npm-shrinkwrap.json
