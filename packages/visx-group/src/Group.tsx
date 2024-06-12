@@ -1,5 +1,5 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useCanvas } from '@visx/canvas';
+import React, { ReactNode } from 'react';
+import { useCanvasComponent } from '@visx/canvas';
 import cx from 'classnames';
 
 type GroupProps = {
@@ -28,96 +28,62 @@ export default function Group({
   canvasParentId,
   ...restProps
 }: GroupProps & Omit<React.SVGProps<SVGGElement>, keyof GroupProps>) {
-  const { hasCanvas, handleChildren, registerCanvasComponent, updateNode, deleteNode, addNode } =
-    useCanvas();
-  const canvasId = useRef<number | null>(null);
-  const prevId = useRef<number | null>(null);
+  const [, canvasChildren] = useCanvasComponent({
+    name: 'GROUP',
+    render: (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, ...restProps }) => {
+      if (!ctx) {
+        return;
+      }
+      const { x = 0, y = 0 } = restProps;
 
-  useMemo(() => {
-    registerCanvasComponent(
-      'GROUP',
-      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, restProps }) => {
-        if (!ctx) {
-          return;
-        }
-        const { x = 0, y = 0 } = restProps;
+      if (!isNaN(Number(x))) {
+        ctx.translate(Number(x), 0);
+      }
 
-        if (!isNaN(Number(x))) {
-          console.log(`translating x: ctx.translate(${Number(x)}, 0)`);
-          ctx.translate(Number(x), 0);
-        }
+      if (!isNaN(Number(y))) {
+        ctx.translate(0, Number(y));
+      }
+      if (!isNaN(Number(left))) {
+        ctx.translate(Number(left), 0);
+      }
 
-        if (!isNaN(Number(y))) {
-          console.log(`translating y: ctx.translate(${Number(y)}, 0)`);
-          ctx.translate(0, Number(y));
-        }
-        if (!isNaN(Number(left))) {
-          console.log(`translating x: ctx.translate(${Number(left)}, 0)`);
-          ctx.translate(Number(left), 0);
-        }
+      if (!isNaN(Number(top))) {
+        ctx.translate(0, Number(top));
+      }
+    },
+    cleanup: (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, props) => {
+      // Reverse the transformations
+      if (!ctx) {
+        return;
+      }
 
-        if (!isNaN(Number(top))) {
-          console.log(`translating y: ctx.translate(${Number(top)}, 0)`);
-          ctx.translate(0, Number(top));
-        }
-      },
-      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D, { top, left, restProps }) => {
-        // Reverse the transformations
-        if (!ctx) {
-          return;
-        }
+      if (!isNaN(Number(props.left))) {
+        ctx.translate(-Number(left), 0);
+      }
 
-        if (!isNaN(Number(left))) {
-          console.log(`translating x: ctx.translate(-${Number(left)}, 0)`);
-          ctx.translate(-Number(left), 0);
-        }
+      if (!isNaN(Number(props.top))) {
+        ctx.translate(0, -Number(props.top));
+      }
 
-        if (!isNaN(Number(top))) {
-          console.log(`translating y: ctx.translate(-${Number(top)}, 0)`);
-          ctx.translate(0, -Number(top));
-        }
+      const { x = 0, y = 0 } = props;
 
-        const { x = 0, y = 0 } = restProps;
+      if (!isNaN(Number(x))) {
+        ctx.translate(-Number(x), 0);
+      }
 
-        if (!isNaN(Number(x))) {
-          console.log(`translating x: ctx.translate(-${Number(x)}, 0)`);
-          ctx.translate(-Number(x), 0);
-        }
+      if (!isNaN(Number(y))) {
+        ctx.translate(0, -Number(y));
+      }
+    },
+    children,
+    props: {
+      top,
+      left,
+      ...restProps,
+    },
+  });
 
-        if (!isNaN(Number(y))) {
-          console.log(`translating y: ctx.translate(-${Number(y)}, 0)`);
-          ctx.translate(0, -Number(y));
-        }
-      },
-    );
-
-    console.log('adding group');
-    canvasId.current = addNode(canvasParentId ?? null, 'GROUP', { top, left, restProps });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasParentId, left, restProps, top, children]);
-
-  useLayoutEffect(() => {
-    prevId.current = canvasId.current;
-    return () => {
-      console.log('deleting group', prevId.current);
-      deleteNode(prevId.current);
-    };
-  }, [canvasParentId, left, restProps, top, children, deleteNode]);
-
-  useEffect(() => {
-    if (!hasCanvas || !canvasId.current) return;
-
-    updateNode(canvasId.current, { left, top, restProps });
-  }, [left, top, restProps, hasCanvas, updateNode]);
-
-  if (hasCanvas) {
-    if (!children || !canvasId.current) {
-      return null;
-    }
-
-    return handleChildren(children, canvasId.current);
-  }
+  if (canvasChildren) return canvasChildren as ReactNode;
 
   return (
     <g

@@ -1,8 +1,7 @@
-/* eslint-disable no-shadow */
-import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { ReactNode } from 'react';
 import cx from 'classnames';
 import { Line as LineType } from 'd3-shape';
-import { useCanvas } from '@visx/canvas';
+import { useCanvasComponent } from '@visx/canvas';
 import { AddSVGProps, LinePathConfig } from '../types';
 import { line } from '../util/D3ShapeFactories';
 import { PSEUDO_ZERO } from '../util/math';
@@ -35,95 +34,69 @@ export default function LinePath<Datum>({
   canvasParentId,
   ...restProps
 }: AddSVGProps<LinePathProps<Datum>, SVGPathElement>) {
-  const { hasCanvas, handleChildren, addNode, deleteNode, updateNode, registerCanvasComponent } =
-    useCanvas();
-  const canvasId = useRef<number | null>(null);
-  const prevId = useRef<number | null>(null);
   const path = line<Datum>({ x, y, defined, curve });
+  const [, canvasChildren] = useCanvasComponent({
+    name: 'LINE_PATH',
+    children,
+    canvasParentId,
+    render: (
+      _: HTMLCanvasElement,
+      ctx: CanvasRenderingContext2D,
+      { data = [], path, fill = 'transparent', ...restProps },
+    ) => {
+      if (!ctx) {
+        return;
+      }
 
-  useMemo(() => {
-    registerCanvasComponent(
-      'LINE_PATH',
-      (
-        _: HTMLCanvasElement,
-        ctx: CanvasRenderingContext2D,
-        { data = [], path, restProps, fill = 'transparent' },
-      ) => {
-        if (!ctx) {
-          return;
-        }
+      // Default properties for line path element
+      ctx.lineWidth = PSEUDO_ZERO;
+      ctx.strokeStyle = '#000';
+      ctx.fillStyle = 'black';
 
-        // Default properties for line path element
-        ctx.lineWidth = PSEUDO_ZERO;
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = 'black';
+      // Trace the path
+      ctx.beginPath();
+      path.context(ctx);
+      path(data);
 
-        // Trace the path
-        ctx.beginPath();
-        path.context(ctx);
-        path(data);
+      // Apply styles
+      ctx.fillStyle = fill;
+      if (restProps.stroke) {
+        ctx.strokeStyle = restProps.stroke;
+      }
+      if (restProps.strokeWidth) {
+        ctx.lineWidth = Number(restProps.strokeWidth);
+      }
+      ctx.lineCap = 'round';
+      if (restProps.strokeLinecap && restProps.strokeLinecap !== 'inherit') {
+        ctx.lineCap = restProps.strokeLinecap;
+      }
 
-        // Apply styles
-        ctx.fillStyle = fill;
-        if (restProps.stroke) {
-          ctx.strokeStyle = restProps.stroke;
-        }
-        if (restProps.strokeWidth) {
-          ctx.lineWidth = Number(restProps.strokeWidth);
-        }
-        ctx.lineCap = 'round';
-        if (restProps.strokeLinecap && restProps.strokeLinecap !== 'inherit') {
-          ctx.lineCap = restProps.strokeLinecap;
-        }
+      // Draw to the canvas
+      ctx.fill();
+      ctx.stroke();
+    },
+    cleanup: (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+      if (!ctx) {
+        return;
+      }
 
-        // Draw to the canvas
-        ctx.fill();
-        ctx.stroke();
-      },
-      (_: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-        if (!ctx) {
-          return;
-        }
-
-        // Reset canvas properties
-        ctx.lineWidth = PSEUDO_ZERO;
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = 'black';
-      },
-    );
-
-    console.log('adding linepath');
-    canvasId.current = addNode(canvasParentId ?? null, 'LINE_PATH', {
+      // Reset canvas properties
+      ctx.lineWidth = PSEUDO_ZERO;
+      ctx.strokeStyle = '#000';
+      ctx.fillStyle = 'black';
+    },
+    props: {
       data,
-      path,
-      restProps,
+      curve,
+      x,
+      y,
       fill,
-    });
+      path,
+      ...restProps,
+    },
+  });
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvasParentId, data, fill, path, restProps]);
-
-  useLayoutEffect(() => {
-    prevId.current = canvasId.current;
-    return () => {
-      console.log('deleting linepath', prevId.current);
-      deleteNode(prevId.current);
-    };
-  }, [deleteNode, canvasParentId, data, fill, path, restProps]);
-
-  useEffect(() => {
-    if (!hasCanvas || !canvasId.current) return;
-
-    updateNode(canvasId.current, { data, path, restProps, fill });
-  }, [data, fill, path, restProps, hasCanvas, updateNode]);
-
-  if (hasCanvas) {
-    if (!children || !canvasId.current) {
-      return null;
-    }
-
-    return handleChildren(children, canvasId.current);
-  }
+  if (canvasChildren) return canvasChildren as ReactNode;
 
   if (children) return <>{children({ path })}</>;
 

@@ -125,7 +125,6 @@ export default function Canvas({
 
   const execute = useCallback(
     (canvas, ctx, root: TreeNode<CanvasNode>) => {
-      console.log('executing on ', root.id, root);
       const component = registry.current.find(({ type }) => type === root.payload?.type);
       component?.render?.(canvas, ctx, root.payload?.props);
       for (const child of root.children ?? []) {
@@ -143,9 +142,7 @@ export default function Canvas({
       return;
     }
 
-    console.log('devicePixelRatio', window.devicePixelRatio);
     const { width, height } = canvas.getBoundingClientRect();
-    console.log({ width, height });
     canvas.width = width * ratio;
     canvas.height = height * ratio;
 
@@ -168,8 +165,6 @@ export default function Canvas({
     execute(canvas, ctx, tree);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree]);
-
-  console.log({ tree, registry });
 
   return (
     <canvas height={height} ref={canvasRef} width={width} {...restProps}>

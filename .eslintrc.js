@@ -25,6 +25,7 @@ module.exports = {
         'lines-between-class-members': 'off',
         'no-console': 'off',
         'no-nested-ternary': 'off',
+        'no-shadow': 'off',
         'no-param-reassign': 'warn',
         'no-restricted-syntax': 'off',
         'no-use-before-define': 'off',
